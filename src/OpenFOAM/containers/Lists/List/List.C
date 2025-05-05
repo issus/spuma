@@ -211,9 +211,9 @@ Foam::List<T>::List(const Foam::one, const Foam::zero)
 
 
 template<class T>
-Foam::List<T>::List(const UList<T>& list)
+Foam::List<T>::List(const UList<T>& list, poolSwitch usePool)
 :
-    UList<T>(nullptr, list.size_, list.usePool())
+    UList<T>(nullptr, list.size_, poolSwitch(usePool || list.usePool()))
 {
     if (this->size_ > 0)
     {
@@ -222,11 +222,10 @@ Foam::List<T>::List(const UList<T>& list)
     }
 }
 
-// TODO memmoryPool
 template<class T>
-Foam::List<T>::List(const List<T>& list)
+Foam::List<T>::List(const List<T>& list, poolSwitch usePool)
 :
-    UList<T>(nullptr, list.size_, list.usePool())
+    UList<T>(nullptr, list.size_, poolSwitch(usePool || list.usePool()))
 {
     if (this->size_ > 0)
     {
@@ -237,11 +236,11 @@ Foam::List<T>::List(const List<T>& list)
 
 
 template<class T>
-Foam::List<T>::List(List<T>& list, bool reuse)
+Foam::List<T>::List(List<T>& list, bool reuse, poolSwitch usePool)
 :
-    UList<T>(nullptr, list.size_, list.usePool())
+    UList<T>(nullptr, list.size_, poolSwitch(usePool || list.usePool()))
 {
-    if (reuse)
+    if (reuse && (usePool == list.usePool()))
     {
         // Steal content
         this->v_ = list.v_;

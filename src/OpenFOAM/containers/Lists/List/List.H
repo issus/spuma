@@ -190,13 +190,13 @@ public:
         List(const Foam::one, const Foam::zero);
 
         //- Copy construct from list
-        List(const List<T>& list);
+        List(const List<T>& list, poolSwitch usePool = poolSwitch(false));
 
         //- Copy construct contents from list
-        explicit List(const UList<T>& list);
+        explicit List(const UList<T>& list, poolSwitch usePool = poolSwitch(false));
 
         //- Construct as copy or re-use as specified
-        List(List<T>& list, bool reuse);
+        List(List<T>& list, bool reuse, poolSwitch usePool = poolSwitch(false));
 
         //- Copy construct subset of list
         List(const UList<T>& list, const labelUList& indices);
