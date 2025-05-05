@@ -95,7 +95,7 @@ Foam::PrimitivePatch<FaceList, PointField>::calcMeshData() const
         }
     }
     // Transfer to straight list (reuses storage)
-    meshPointsPtr_.reset(new labelList(meshPoints, true));
+    meshPointsPtr_.reset(new labelList(meshPoints, true, poolSwitch(true)));
 
     // Create local faces. Deep-copy original faces to retain additional
     // data (e.g. region number of labelledTri)
