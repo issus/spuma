@@ -236,9 +236,21 @@ Foam::List<T>::List(Foam::one, Foam::zero)
 
 
 template<class T>
-Foam::List<T>::List(const UList<T>& list)
+Foam::List<T>::List(const UList<T>& list, poolSwitch usePool)
 :
-    UList<T>(nullptr, 0, list.usePool())
+    UList<T>(nullptr, 0, poolSwitch(usePool || list.usePool()))
+{
+    if (!list.empty())
+    {
+        doAlloc(list.size());
+        UList<T>::deepCopy(list);
+    }
+}
+
+template<class T>
+Foam::List<T>::List(const List<T>& list, poolSwitch usePool)
+:
+    UList<T>(nullptr, 0, poolSwitch(usePool || list.usePool()))
 {
     if (!list.empty())
     {
@@ -249,24 +261,11 @@ Foam::List<T>::List(const UList<T>& list)
 
 
 template<class T>
-Foam::List<T>::List(const List<T>& list)
+Foam::List<T>::List(List<T>& list, bool reuse, poolSwitch usePool)
 :
-    UList<T>(nullptr, 0, list.usePool())
+    UList<T>(nullptr, 0, poolSwitch(usePool || list.usePool()))
 {
-    if (!list.empty())
-    {
-        doAlloc(list.size());
-        UList<T>::deepCopy(list);
-    }
-}
-
-
-template<class T>
-Foam::List<T>::List(List<T>& list, bool reuse)
-:
-    UList<T>(nullptr, 0, list.usePool())
-{
-    if (reuse)
+    if (reuse && (usePool == list.usePool()))
     {
         // Steal content
         this->v_ = list.v_;
