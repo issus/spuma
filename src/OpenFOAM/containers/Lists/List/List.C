@@ -59,7 +59,6 @@ void Foam::List<T>::resize_copy(label count, const label len)
         if (count > 0)
         {
             // Recover overlapping content when resizing
-
             this->size_ = len;
             if (this->usePool_)
             {
@@ -67,10 +66,15 @@ void Foam::List<T>::resize_copy(label count, const label len)
                     (
                         Spuma::MemoryPool::getInstance()->allocate(len*sizeof(T))
                     );
+                for (label i = 0; i < len; ++i)
+                {
+                    new (this->v_ + i) T;
+                }
 
                 Spuma::MemoryPool::getInstance()->memCopy(this->v_,old,count*sizeof(T));
 
                 Spuma::MemoryPool::getInstance()->free(old);
+
             }
             else
             {
@@ -89,6 +93,10 @@ void Foam::List<T>::resize_copy(label count, const label len)
             // No overlapping content
             if (this->usePool_)
             {
+                for (label i = 0; i < this->size_; ++i)
+                {
+                    this->v_[i].~T();
+                }
                 Spuma::MemoryPool::getInstance()->free(this->v_);
             }
             else
@@ -104,6 +112,10 @@ void Foam::List<T>::resize_copy(label count, const label len)
                     (
                         Spuma::MemoryPool::getInstance()->allocate(len*sizeof(T))
                     );
+                for (label i = 0; i < len; ++i)
+                {
+                        new (this->v_ + i) T;
+                }
             }
             else
             {
@@ -362,8 +374,11 @@ Foam::List<T>::~List()
     {
         if(this->usePool_)
         {
+            for (label i = 0; i < this->size_; ++i)
+            {
+                this->v_[i].~T();
+            }
             Spuma::MemoryPool::getInstance()->free(this->v_);
-
         }
         else
         {

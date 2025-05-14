@@ -41,6 +41,10 @@ inline void Foam::List<T>::doAlloc(const label len)
             (
                 Spuma::MemoryPool::getInstance()->allocate(len*sizeof(T))
             );
+            for (label i = 0; i < this->size_; ++i)
+            {
+                new (this->v_ + i) T;
+            }
         }
         else
         {
@@ -154,6 +158,10 @@ inline void Foam::List<T>::clear()
     {
         if (this->usePool_)
         {
+            for (label i = 0; i < this->size_; ++i)
+            {
+                this->v_[i].~T();
+            }
             Spuma::MemoryPool::getInstance()->free
             (
                 reinterpret_cast<void*>(this->v_)
