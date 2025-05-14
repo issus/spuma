@@ -49,6 +49,9 @@ namespace Spuma
 // Null, because instance will be initialized on demand.
 Foam::Spuma::MemoryPool* Foam::Spuma::MemoryPool::instance = nullptr;
 
+// Static variable to track whether the memory pool was initialized
+bool Foam::MemoryPool::isInitialized = false;
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::Spuma::MemoryPool::MemoryPool(const dictionary& dict):
@@ -97,6 +100,8 @@ Foam::Spuma::MemoryPool* Foam::Spuma::MemoryPool::New
             << abort(FatalError);
         }
     }
+
+    isInitialized = true;
 
     return instance;
 }

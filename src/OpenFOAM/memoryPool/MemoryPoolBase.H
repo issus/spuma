@@ -95,6 +95,9 @@ public:
     // Static Data
     TypeName("MemoryPool");
 
+    // Static variable to track whether the memory pool was initialized
+    static bool isInitialized;
+
     // Constructor
     MemoryPool():
         size_(0),
