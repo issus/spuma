@@ -580,6 +580,16 @@ void Foam::fixedSizeMemoryPool::showUnallocated(bool relative)
         Info
             << "At address: " << std::to_string(reinterpret_cast<uint64_t>(ii->first) - offset)
             << " allocated block of size " << ii->second << " bytes." << nl;
-};
+}
+
+Foam::label Foam::fixedSizeMemoryPool::numAllocated()
+{
+    return this->usedBlockList_.size();
+}
+
+Foam::label Foam::fixedSizeMemoryPool::numUnalocated()
+{
+    return this->unusedBlockList_.size();
+}
 
 // ************************************************************************* //

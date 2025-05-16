@@ -208,6 +208,12 @@ public:
     // Prints list of unallocated blocks
     virtual void showUnallocated(bool relative = false) = 0;
 
+    // Returns the number of allocated blocks in the pool
+    virtual label numAllocated() = 0;
+
+    // Returns the number of unallocated blocks in the pool
+    virtual label numUnalocated() = 0;
+
     /* Static access method. */
     static MemoryPool* getInstance();
 

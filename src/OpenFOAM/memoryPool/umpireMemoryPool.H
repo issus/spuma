@@ -204,6 +204,19 @@ public:
     {
         NotImplemented;
     }
+
+    // Returns the number of allocated blocks in the pool
+    virtual label numAllocated()
+    {
+        NotImplemented;
+    }
+
+    // Returns the number of unallocated blocks in the pool
+    virtual label numUnalocated()
+    {
+        NotImplemented;
+    }
+
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

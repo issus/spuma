@@ -163,6 +163,12 @@ public:
     // Prints list of unallocated blocks
     void showUnallocated(bool relative = false);
 
+    // Returns the number of allocated blocks in the pool
+    label numAllocated();
+
+    // Returns the number of unallocated blocks in the pool
+    label numUnalocated();
+
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

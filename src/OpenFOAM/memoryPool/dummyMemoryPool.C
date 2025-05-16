@@ -486,4 +486,14 @@ void Foam::dummyMemoryPool::showUnallocated(bool relative)
             << " allocated block of size " << ii->second << " bytes." << nl;
 };
 
+Foam::label Foam::dummyMemoryPool::numAllocated()
+{
+    return this->usedBlockList_.size();
+}
+
+Foam::label Foam::dummyMemoryPool::numUnalocated()
+{
+    return this->unusedBlockList_.size();
+}
+
 // ************************************************************************* //
