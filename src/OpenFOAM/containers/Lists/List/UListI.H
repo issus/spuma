@@ -38,7 +38,7 @@ inline constexpr Foam::UList<T>::UList() noexcept
 :
     size_(0),
     v_(nullptr),
-    usePool_(false)
+    usePool_(MemoryPool::isInitialized && !(std::is_base_of<token, T>::value || std::is_base_of<string, T>::value || std::is_same<char, T>::value || std::is_same<bool, T>::value))
 {}
 
 
@@ -47,7 +47,7 @@ inline Foam::UList<T>::UList(T* __restrict__ ptr, const label len, bool usePool)
 :
     size_(len),
     v_(ptr),
-    usePool_(usePool)
+    usePool_(MemoryPool::isInitialized && usePool && !(std::is_base_of<token, T>::value || std::is_base_of<string, T>::value || std::is_same<char, T>::value || std::is_same<bool, T>::value))
 {}
 
 

@@ -160,15 +160,18 @@ public:
         inline constexpr List() noexcept;
 
         //- Construct with given size
-        explicit List(const label len, poolSwitch usePool = poolSwitch(false));
+        //explicit List(const label len);
+        explicit List(const label len, poolSwitch usePool = poolSwitch(true));
 
         explicit List(const poolSwitch usePool);
 
         //- Construct with given size and value for all elements
-        List(const label len, const T& val, poolSwitch usePool = poolSwitch(false));
+        //List(const label len, const T& val);
+        List(const label len, const T& val, poolSwitch usePool = poolSwitch(true));
 
         //- Construct with given size initializing all elements to zero
-        List(const label len, Foam::zero, poolSwitch usePool = poolSwitch(false));
+        List(const label len, const Foam::zero, poolSwitch usePool = poolSwitch(true));
+        //List(const label len, const Foam::zero, poolSwitch usePool = false);
 
         //- Construct with length=1, copying the value as the only content
         List(Foam::one, const T& val);

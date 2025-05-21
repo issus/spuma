@@ -256,7 +256,7 @@ public:
         inline constexpr UList() noexcept;
 
         //- Construct from components
-        inline UList(T* __restrict__ ptr, const label len,  bool usePool = false) noexcept;
+        inline UList(T* __restrict__ ptr, const label len,  bool usePool = true) noexcept;
 
         //- Move construct from a SubList, shallow copy
         UList(SubList<T>&&) noexcept;
