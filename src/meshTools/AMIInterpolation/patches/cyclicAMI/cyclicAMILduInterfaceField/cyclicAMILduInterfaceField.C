@@ -53,13 +53,23 @@ void Foam::cyclicAMILduInterfaceField::transformCoupleField
 {
     if (doTransform())
     {
+        foamExecutor exec;
+        auto f_p = f.begin();
+        const auto forwardT_p = forwardT().cbegin();
+        const auto localRank = rank();
         if (forwardT().size() == 1)
         {
-            f *= pow(diag(forwardT()[0]).component(cmpt), rank());
+            auto Lambda = [=](label i){
+                f_p[i] *=  pow(diag(forwardT_p[0]).component(cmpt), localRank);
+            };
+            exec.parallelFor(Lambda, f.size());
         }
         else
         {
-            f *= pow(diag(forwardT())().component(cmpt), rank());
+            auto Lambda = [=](label i){
+                f_p[i] *= pow(diag(forwardT_p[i]).component(cmpt), localRank);
+            };
+            exec.parallelFor(Lambda,f.size());
         }
     }
 }

@@ -117,7 +117,15 @@ void Foam::cyclicAMILduInterfaceField::transformCoupleField
     {
         if (forwardT().size() == 1)
         {
-            transform(f, forwardT()[0], f);
+            //transform(f, forwardT()[0], f);
+            foamExecutor exec;
+            auto f_p = f.begin();
+            const auto forwardT_p = forwardT().cbegin();
+            auto Lambda = [=](label i )
+            {
+                f_p[i] = transform(forwardT_p[0],f_p[i]);
+            };
+            exec.parallelFor(Lambda,f.size());
         }
         else
         {

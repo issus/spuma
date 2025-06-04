@@ -409,6 +409,24 @@ bool Foam::nearestFaceAMI::calculate
     srcWeightsSum_.setSize(srcWeights_.size(), 1);
     tgtWeightsSum_.setSize(tgtWeights_.size(), 1);
 
+    AMIInterpolation::calcFlatIndexing
+    (
+        srcAddress_,
+        srcWeights_,
+        flatSrcAddress_,
+        flatSrcWeights_,
+        flatSrcIdx_
+    );
+
+    AMIInterpolation::calcFlatIndexing
+    (
+        tgtAddress_,
+        tgtWeights_,
+        flatTgtAddress_,
+        flatTgtWeights_,
+        flatTgtIdx_
+    );
+
     upToDate_ = true;
 
     return upToDate_;

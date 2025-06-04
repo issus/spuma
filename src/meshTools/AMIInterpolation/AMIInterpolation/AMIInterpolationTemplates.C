@@ -79,6 +79,157 @@ void Foam::AMIInterpolation::weightedSum
     }
 }
 
+template<class Type, class CombineOp>
+void Foam::AMIInterpolation::weightedSum
+(
+    const scalar lowWeightCorrection,
+    const labelListList& allSlots,
+    const scalarListList& allWeights,
+    const labelList& flatSlots,
+    const scalarList& flatWeights,
+    const labelList& flatIdx,
+    const scalarField& weightsSum,
+    const UList<Type>& fld,
+    const CombineOp& cop,
+    List<Type>& result,
+    const UList<Type>& defaultValues
+)
+{
+//    List<Type> gpu_result(result);
+
+/*
+    //check whether flat and listlist are equal
+    bool equal = true;
+    forAll(allSlots,i)
+    {
+        const labelList& slots = allSlots[i];
+        const scalarList& weights = allWeights[i];
+        forAll(slots, j)
+        {
+            if
+            (
+                (slots[j] != flatSlots[flatIdx[i]+j]) ||
+                (abs(weights[j]-flatWeights[flatIdx[i]+j]) > 1e-6)
+            )
+            {
+                equal = false;
+                break;
+            }
+        }
+
+        if (!equal)
+            break;
+
+    }
+    Info<<"flatIdx and ListList equal:"<< equal <<endl;
+
+    if (lowWeightCorrection > 0)
+    {
+        forAll(result, facei)
+        {
+            if (weightsSum[facei] < lowWeightCorrection)
+            {
+                result[facei] = defaultValues[facei];
+            }
+            else
+            {
+                const labelList& slots = allSlots[facei];
+                const scalarList& weights = allWeights[facei];
+
+                forAll(slots, i)
+                {
+                    cop(result[facei], facei, fld[slots[i]], weights[i]);
+                }
+            }
+        }
+    }
+    else
+    {
+        forAll(result, facei)
+        {
+            const labelList& slots = allSlots[facei];
+            const scalarList& weights = allWeights[facei];
+
+            forAll(slots, i)
+            {
+                cop(result[facei], facei, fld[slots[i]], weights[i]);
+            }
+        }
+    }
+*/
+    foamExecutor exec;
+    auto result_p = result.begin();
+    //auto result_p = gpu_result.begin();
+    const auto fld_p = fld.cbegin();
+    const auto allSlots_p = allSlots.cbegin();
+    const auto allWeights_p = allWeights.cbegin();
+    auto defaultValues_p = defaultValues.begin();
+    const auto weightsSum_p = weightsSum.cbegin();
+    const auto flatSlots_p = flatSlots.cbegin();
+    const auto flatWeights_p = flatWeights.cbegin();
+    const auto flatIdx_p = flatIdx.cbegin();
+
+/*
+    Info<< "device valid fld: "<<isDeviceValid(fld_p)<<endl;
+    Info<< "device valid defaultValues: "<<isDeviceValid(defaultValues_p)<<endl;
+    Info<< "device valid result: "<<isDeviceValid(result_p)<<endl;
+    Info<< "device valid flatSlots: "<<isDeviceValid(flatSlots_p)<<endl;
+    Info<< "device valid flatWeights: "<<isDeviceValid(flatWeights_p)<<endl;
+    Info<< "device valid flatIdx: "<<isDeviceValid(flatIdx_p)<<endl;
+    Info<< "device valid allSlots: "<<isDeviceValid(allSlots_p)<<endl;
+    Info<< "device valid allWeights: "<<isDeviceValid(allWeights_p)<<endl;
+*/
+
+    if (lowWeightCorrection > 0)
+    {
+        auto Lambda = [=](label facei){
+            if (weightsSum_p[facei] < lowWeightCorrection)
+            {
+                result_p[facei] = defaultValues_p[facei];
+            }
+        };
+        auto Lambda2 = [=](label facei){
+            if (weightsSum_p[facei] >= lowWeightCorrection)
+            {
+                for (size_t i = flatIdx_p[facei]; i < flatIdx_p[facei+1]; i++)
+                {
+                    cop(result_p[facei], facei, fld_p[flatSlots_p[i]], flatWeights_p[i]);
+                }
+            }
+        };
+
+        exec.parallelFor(Lambda,result.size());
+        exec.parallelFor(Lambda2,result.size());
+    }
+    else
+    {
+        auto Lambda2 = [=](label facei){
+            for (size_t i = flatIdx_p[facei]; i < flatIdx_p[facei+1]; i++)
+            {
+                cop(result_p[facei], facei, fld_p[flatSlots_p[i]], flatWeights_p[i]);
+            };
+        };
+        exec.parallelFor(Lambda2,result.size());
+    }
+
+/*
+    // check result
+    if constexpr(std::is_same<Type,vector>::value || std::is_same<Type,scalar>::value ){
+        equal = true;
+        forAll(result,facei)
+        {
+            if(mag(result[facei] - gpu_result[facei]) > 1e-6){
+                equal = false;
+                break;
+            }
+        }
+        Info << "results equal: "<<equal<<endl;
+        //Info <<"results:" <<  result <<endl;
+        //Info <<"gpu results:" <<  gpu_result <<endl;
+    }
+*/
+}
+
 
 template<class Type>
 void Foam::AMIInterpolation::weightedSum
@@ -94,6 +245,9 @@ void Foam::AMIInterpolation::weightedSum
         lowWeightCorrection_,
         (interpolateToSource ? srcAddress_ : tgtAddress_),
         (interpolateToSource ? srcWeights_ : tgtWeights_),
+        (interpolateToSource ? flatSrcAddress_ : flatTgtAddress_),
+        (interpolateToSource ? flatSrcWeights_ : flatTgtWeights_),
+        (interpolateToSource ? flatSrcIdx_ : flatTgtIdx_),
         (interpolateToSource ? srcWeightsSum_ : tgtWeightsSum_),
         fld,
         multiplyWeightedOp<Type, plusEqOp<Type>>(plusEqOp<Type>()),
@@ -140,7 +294,7 @@ void Foam::AMIInterpolation::interpolateToTarget
     }
 
     result.setSize(tgtAddress_.size());
-    List<Type> work;
+    List<Type> work(poolSwitch(true));
 
     if (distributed())
     {
@@ -150,17 +304,35 @@ void Foam::AMIInterpolation::interpolateToTarget
         map.distribute(work);
     }
 
-    weightedSum
-    (
-        lowWeightCorrection_,
-        tgtAddress_,
-        tgtWeights_,
-        tgtWeightsSum_,
-        (distributed() ? work : fld),
-        cop,
-        result,
-        defaultValues
-    );
+
+    if constexpr(std::is_same<CombineOp,multiplyWeightedOp<Type, plusEqOp<Type>>>::value){
+        weightedSum
+        (
+            lowWeightCorrection_,
+            tgtAddress_,
+            tgtWeights_,
+            flatTgtAddress_,
+            flatTgtWeights_,
+            flatTgtIdx_,
+            tgtWeightsSum_,
+            (distributed() ? work : fld),
+            cop,
+            result,
+            defaultValues
+        );
+    }else{
+        weightedSum
+        (
+            lowWeightCorrection_,
+            tgtAddress_,
+            tgtWeights_,
+            tgtWeightsSum_,
+            (distributed() ? work : fld),
+            cop,
+            result,
+            defaultValues
+        );
+    }
 }
 
 
@@ -201,7 +373,7 @@ void Foam::AMIInterpolation::interpolateToSource
     }
 
     result.setSize(srcAddress_.size());
-    List<Type> work;
+    List<Type> work(poolSwitch(true));
 
     if (distributed())
     {
@@ -211,17 +383,34 @@ void Foam::AMIInterpolation::interpolateToSource
         map.distribute(work);
     }
 
-    weightedSum
-    (
-        lowWeightCorrection_,
-        srcAddress_,
-        srcWeights_,
-        srcWeightsSum_,
-        (distributed() ? work : fld),
-        cop,
-        result,
-        defaultValues
-    );
+    if constexpr(std::is_same<CombineOp,multiplyWeightedOp<Type, plusEqOp<Type>>>::value){
+        weightedSum
+        (
+            lowWeightCorrection_,
+            srcAddress_,
+            srcWeights_,
+            flatSrcAddress_,
+            flatSrcWeights_,
+            flatSrcIdx_,
+            srcWeightsSum_,
+            (distributed() ? work : fld),
+            cop,
+            result,
+            defaultValues
+        );
+    }else{
+        weightedSum
+        (
+            lowWeightCorrection_,
+            srcAddress_,
+            srcWeights_,
+            srcWeightsSum_,
+            (distributed() ? work : fld),
+            cop,
+            result,
+            defaultValues
+        );
+    }
 }
 
 

@@ -183,25 +183,31 @@ Foam::tmp<Foam::vectorField> Foam::cyclicAMIFvPatch::delta() const
         vectorField& pdv = tpdv.ref();
 
         // do the transformation if necessary
+        foamExecutor exec;
+        auto pdv_p = pdv.begin();
+        const auto patchD_p = patchD.cbegin();
+        const auto nbrPatchD_p = nbrPatchD.cbegin();
+
         if (parallel())
         {
-            forAll(patchD, facei)
-            {
-                const vector& ddi = patchD[facei];
-                const vector& dni = nbrPatchD[facei];
+            auto Lambda = [=](label facei){
+                const vector& ddi = patchD_p[facei];
+                const vector& dni = nbrPatchD_p[facei];
 
-                pdv[facei] = ddi - dni;
-            }
+                pdv_p[facei] = ddi - dni;
+            };
+            exec.parallelFor(Lambda,patchD.size());
         }
         else
         {
-            forAll(patchD, facei)
-            {
-                const vector& ddi = patchD[facei];
-                const vector& dni = nbrPatchD[facei];
+            const auto forwardT_p = forwardT().cbegin();
+            auto Lambda = [=](label facei){
+                const vector& ddi = patchD_p[facei];
+                const vector& dni = nbrPatchD_p[facei];
 
-                pdv[facei] = ddi - transform(forwardT()[0], dni);
-            }
+                pdv_p[facei] = ddi - transform(forwardT_p[0], dni);
+            };
+            exec.parallelFor(Lambda,patchD.size());
         }
 
         return tpdv;

@@ -550,7 +550,51 @@ void Foam::AMIInterpolation::agglomerate
     );
 }
 
+void Foam::AMIInterpolation::calcFlatIndexing
+(
+    const labelListList& addr,
+    const scalarListList& weights,
+    labelList& flatAddr,
+    scalarList& flatWeights,
+    labelList& flatIdx
+)
+{
+   Info<<"init calc flat map"<<endl;
+   if(weights.size() != addr.size())
+   {
+        FatalErrorInFunction<<
+            "weights and address are not the same size"
+            << abort(FatalError);
+   };
 
+   flatIdx.setSize(addr.size()+1);
+
+   flatIdx[0] = 0;
+   label flatTotalSize = 0;
+   forAll(addr,i)
+   {
+        const labelList& addri = addr[i];
+        const label faceSize = addri.size();
+        flatIdx[i+1] = flatIdx[i] + faceSize;
+        flatTotalSize += faceSize;
+   }
+
+   flatAddr.setSize(flatTotalSize);
+   flatWeights.setSize(flatTotalSize);
+
+   forAll(addr,i)
+   {
+        const labelList& addri = addr[i];
+        const scalarList& weightsi = weights[i];
+
+        forAll(addri,j)
+        {
+            flatAddr[flatIdx[i]+j] = addri[j];
+            flatWeights[flatIdx[i]+j] = weightsi[j];
+        }
+   }
+   Info<<"done calc flat map"<<endl;
+}
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::AMIInterpolation::AMIInterpolation
@@ -564,16 +608,22 @@ Foam::AMIInterpolation::AMIInterpolation
     lowWeightCorrection_(dict.getOrDefault<scalar>("lowWeightCorrection", -1)),
     singlePatchProc_(-999),
     comm_(UPstream::worldComm),
-    srcMagSf_(),
+    srcMagSf_(poolSwitch(true)),
     srcAddress_(),
     srcWeights_(),
-    srcWeightsSum_(),
+    flatSrcAddress_(poolSwitch(true)),
+    flatSrcWeights_(poolSwitch(true)),
+    flatSrcIdx_(poolSwitch(true)),
+    srcWeightsSum_(poolSwitch(true)),
     srcCentroids_(),
     srcMapPtr_(nullptr),
-    tgtMagSf_(),
+    tgtMagSf_(poolSwitch(true)),
     tgtAddress_(),
     tgtWeights_(),
-    tgtWeightsSum_(),
+    flatTgtAddress_(poolSwitch(true)),
+    flatTgtWeights_(poolSwitch(true)),
+    flatTgtIdx_(poolSwitch(true)),
+    tgtWeightsSum_(poolSwitch(true)),
     tgtCentroids_(),
     tgtMapPtr_(nullptr),
     upToDate_(false)
@@ -592,16 +642,22 @@ Foam::AMIInterpolation::AMIInterpolation
     lowWeightCorrection_(lowWeightCorrection),
     singlePatchProc_(-999),
     comm_(UPstream::worldComm),
-    srcMagSf_(),
+    srcMagSf_(poolSwitch(true)),
     srcAddress_(),
     srcWeights_(),
+    flatSrcAddress_(poolSwitch(true)),
+    flatSrcWeights_(poolSwitch(true)),
+    flatSrcIdx_(poolSwitch(true)),
     srcWeightsSum_(),
     srcCentroids_(),
     srcPatchPts_(),
     srcMapPtr_(nullptr),
-    tgtMagSf_(),
+    tgtMagSf_(poolSwitch(true)),
     tgtAddress_(),
     tgtWeights_(),
+    flatTgtAddress_(poolSwitch(true)),
+    flatTgtWeights_(poolSwitch(true)),
+    flatTgtIdx_(poolSwitch(true)),
     tgtWeightsSum_(),
     tgtCentroids_(),
     tgtPatchPts_(),
@@ -622,15 +678,21 @@ Foam::AMIInterpolation::AMIInterpolation
     lowWeightCorrection_(-1.0),
     singlePatchProc_(fineAMI.singlePatchProc_),
     comm_(fineAMI.comm_),
-    srcMagSf_(),
+    srcMagSf_(poolSwitch(true)),
     srcAddress_(),
     srcWeights_(),
+    flatSrcAddress_(poolSwitch(true)),
+    flatSrcWeights_(poolSwitch(true)),
+    flatSrcIdx_(poolSwitch(true)),
     srcWeightsSum_(),
     srcPatchPts_(),
     srcMapPtr_(nullptr),
-    tgtMagSf_(),
+    tgtMagSf_(poolSwitch(true)),
     tgtAddress_(),
     tgtWeights_(),
+    flatTgtAddress_(poolSwitch(true)),
+    flatTgtWeights_(poolSwitch(true)),
+    flatTgtIdx_(poolSwitch(true)),
     tgtWeightsSum_(),
     tgtPatchPts_(),
     tgtMapPtr_(nullptr),
@@ -729,12 +791,18 @@ Foam::AMIInterpolation::AMIInterpolation(const AMIInterpolation& ami)
     srcMagSf_(ami.srcMagSf_),
     srcAddress_(ami.srcAddress_),
     srcWeights_(ami.srcWeights_),
+    flatSrcAddress_(ami.flatSrcAddress_),
+    flatSrcWeights_(ami.flatSrcWeights_),
+    flatSrcIdx_(ami.flatSrcIdx_),
     srcWeightsSum_(ami.srcWeightsSum_),
     srcCentroids_(ami.srcCentroids_),
     srcMapPtr_(nullptr),
     tgtMagSf_(ami.tgtMagSf_),
     tgtAddress_(ami.tgtAddress_),
     tgtWeights_(ami.tgtWeights_),
+    flatTgtAddress_(ami.flatTgtAddress_),
+    flatTgtWeights_(ami.flatTgtWeights_),
+    flatTgtIdx_(ami.flatTgtIdx_),
     tgtWeightsSum_(ami.tgtWeightsSum_),
     tgtCentroids_(ami.tgtCentroids_),
     tgtMapPtr_(nullptr),
@@ -753,6 +821,9 @@ Foam::AMIInterpolation::AMIInterpolation(Istream& is)
     srcMagSf_(is),
     srcAddress_(is),
     srcWeights_(is),
+    flatSrcAddress_(poolSwitch(true)),
+    flatSrcWeights_(poolSwitch(true)),
+    flatSrcIdx_(poolSwitch(true)),
     srcWeightsSum_(is),
     srcCentroids_(is),
     //srcPatchPts_(is),
@@ -761,6 +832,9 @@ Foam::AMIInterpolation::AMIInterpolation(Istream& is)
     tgtMagSf_(is),
     tgtAddress_(is),
     tgtWeights_(is),
+    flatTgtAddress_(poolSwitch(true)),
+    flatTgtWeights_(poolSwitch(true)),
+    flatTgtIdx_(poolSwitch(true)),
     tgtWeightsSum_(is),
     tgtCentroids_(is),
     //tgtPatchPts_(is),
@@ -895,6 +969,24 @@ void Foam::AMIInterpolation::reset
     tgtMapPtr_ = std::move(tgtToSrcMap);
 
     singlePatchProc_ = singlePatchProc;
+
+    AMIInterpolation::calcFlatIndexing
+    (
+        srcAddress_,
+        srcWeights_,
+        flatSrcAddress_,
+        flatSrcWeights_,
+        flatSrcIdx_
+    );
+
+    AMIInterpolation::calcFlatIndexing
+    (
+        tgtAddress_,
+        tgtWeights_,
+        flatTgtAddress_,
+        flatTgtWeights_,
+        flatTgtIdx_
+    );
 
     upToDate_ = true;
 }

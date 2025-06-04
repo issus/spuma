@@ -118,6 +118,15 @@ protected:
             //- Weights of target faces per source face
             scalarListList srcWeights_;
 
+            //- flat Addresses of target faces per source face
+            labelList flatSrcAddress_;
+
+            //- flat Weights of target faces per source face
+            scalarList flatSrcWeights_;
+
+            //- flat src indexing
+            labelList  flatSrcIdx_;
+
             //- Sum of weights of target faces per source face
             scalarField srcWeightsSum_;
 
@@ -146,6 +155,15 @@ protected:
 
             //- Weights of source faces per target face
             scalarListList tgtWeights_;
+
+            //- flat Addresses of source faces per target face
+            labelList flatTgtAddress_;
+
+            //- flat Weights of source faces per target face
+            scalarList flatTgtWeights_;
+
+            //- flat tgt indexing
+            labelList  flatTgtIdx_;
 
             //- Sum of weights of source faces per target face
             scalarField tgtWeightsSum_;
@@ -246,6 +264,15 @@ protected:
                 const label comm
             );
 
+        // flat indexing
+            static void calcFlatIndexing
+            (
+                const labelListList& addr,
+                const scalarListList& weights,
+                labelList& flatAddr,
+                scalarList& flatWeights,
+                labelList& flatIdx
+            );
 
 public:
 
@@ -524,6 +551,23 @@ public:
                     const scalar lowWeightCorrection,
                     const labelListList& allSlots,
                     const scalarListList& allWeights,
+                    const scalarField& weightsSum,
+                    const UList<Type>& fld,
+                    const CombineOp& cop,
+                    List<Type>& result,
+                    const UList<Type>& defaultValues
+                );
+
+                //- Weighted sum of contributions with flat indexing
+                template<class Type, class CombineOp>
+                static void weightedSum
+                (
+                    const scalar lowWeightCorrection,
+                    const labelListList& allSlots,
+                    const scalarListList& allWeights,
+                    const labelList& flatSlots,
+                    const scalarList& flatWeights,
+                    const labelList& flatIdx,
                     const scalarField& weightsSum,
                     const UList<Type>& fld,
                     const CombineOp& cop,
