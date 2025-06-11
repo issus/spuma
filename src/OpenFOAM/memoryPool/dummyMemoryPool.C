@@ -112,11 +112,13 @@ uint64_t Foam::dummyMemoryPool::arraySizeInBytes(void* poolPtr)
     //if ptr is null do nothing
     if (poolPtr == nullptr) return 0;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     //check if pointer was allocated with pool
     if (!this->isValid(poolPtr))
     {
         raisePoolValidError(poolPtr)
     }
+#endif
 
     blockList::iterator mapElement = this->usedBlockList_.find
     (
@@ -139,6 +141,7 @@ void Foam::dummyMemoryPool::copyIn
     //if nElementsInBytes = 0 do nothing
     if (nElementsInBytes == 0) return;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     //check if pointer was allocated with pool
     if (!this->isValid(poolPtr))
     {
@@ -157,8 +160,9 @@ void Foam::dummyMemoryPool::copyIn
     {
         FatalErrorInFunction
             << "Trying to assign more bytes than available in block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
+#endif
 
     foamMemoryExecutor::memCopy
     (
@@ -182,6 +186,7 @@ void Foam::dummyMemoryPool::copyOut
     //if nElementsInBytes = 0 do nothing
     if (nElementsInBytes == 0) return;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     //check if pointer was allocated with pool
     if (!this->isValid(poolPtr))
     {
@@ -200,8 +205,9 @@ void Foam::dummyMemoryPool::copyOut
     {
         FatalErrorInFunction
             << "Trying to assign more bytes than available in block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
+#endif
 
     foamMemoryExecutor::memCopy
     (
@@ -226,6 +232,7 @@ void Foam::dummyMemoryPool::memSet
     //if nElementsInBytes = 0 do nothing
     if (nElementsInBytes == 0) return;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     void* allocatedPoolPtr = poolPtr;
 
     if (!this->isValid(poolPtr))
@@ -260,8 +267,9 @@ void Foam::dummyMemoryPool::memSet
     {
         FatalErrorInFunction
             << "Trying to assign more bytes than available in block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
+#endif
 
     foamMemoryExecutor::memSet(poolPtr, nElementsInBytes, value, sizeOfValue);
 }
@@ -278,6 +286,7 @@ void Foam::dummyMemoryPool::memSetScalarOne
     // if nElementsInBytes = 0 do nothing
     if (nElementsInBytes == 0) return;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     void* allocatedPoolPtr = poolPtr;
     if (!this->isValid(poolPtr))
     {
@@ -311,8 +320,9 @@ void Foam::dummyMemoryPool::memSetScalarOne
     {
         FatalErrorInFunction
             << "Trying to assign more bytes than available in block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
+#endif
 
     foamMemoryExecutor::memSetScalarOne(poolPtr, nElementsInBytes);
 }
@@ -332,6 +342,7 @@ void Foam::dummyMemoryPool::memSet
 
     void* allocatedPoolPtr = poolPtr;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     if (!this->isValid(poolPtr))
     {
         // find nearest valid pointer
@@ -365,8 +376,9 @@ void Foam::dummyMemoryPool::memSet
     {
         FatalErrorInFunction
             << "Trying to assign more bytes than available in block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
+#endif
 
     foamMemoryExecutor::memSet(poolPtr, nElementsInBytes, value);
 }
@@ -384,6 +396,7 @@ void Foam::dummyMemoryPool::memCopy
     // if nElementsInBytes = 0 do nothing
     if (nElementsInBytes == 0) return;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     void* allocatedTgtPtr = tgtPtr;
     if (!this->isValid(tgtPtr))
     {
@@ -448,7 +461,7 @@ void Foam::dummyMemoryPool::memCopy
     {
         FatalErrorInFunction
             << "Trying to read more bytes than available in src block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
 
     if (reinterpret_cast<uint64_t>(tgtPtr) + nElementsInBytes >
@@ -456,8 +469,9 @@ void Foam::dummyMemoryPool::memCopy
     {
         FatalErrorInFunction
             << "Trying to assign more bytes than available in tgt block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
+#endif
 
     foamMemoryExecutor::memCopy
     (

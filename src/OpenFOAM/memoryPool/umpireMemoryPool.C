@@ -69,7 +69,8 @@ Foam::umpireMemoryPool::umpireMemoryPool(const uint64_t size):
     st_ = new umpire::strategy::DynamicPoolList
     (
         "strategy",
-        hostAllocator.getId(),hostAllocator
+        hostAllocator.getId(),
+        hostAllocator
     );
 };
 
@@ -113,8 +114,10 @@ uint64_t Foam::umpireMemoryPool::arraySizeInBytes(void* poolPtr)
     //if ptr is null do nothing
     if (poolPtr == nullptr) return 0;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     //check if pointer was allocated with pool
     auto record = rm_.findAllocationRecord(poolPtr);
+#endif
 
     return record->size;
 };
@@ -132,6 +135,7 @@ void Foam::umpireMemoryPool::copyIn
     // if nElementsInBytes = 0 do nothing
     if (nElementsInBytes == 0) return;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     // check if pointer was allocated with pool
     auto record = rm_.findAllocationRecord(poolPtr);
 
@@ -143,8 +147,9 @@ void Foam::umpireMemoryPool::copyIn
     {
         FatalErrorInFunction
             << "Trying to assign more bytes than available in block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
+#endif
 
     // workaround: umpire does not support copies between non umpire pointers
     inspector_.registerAllocation(ptr, nElementsInBytes, st_);
@@ -165,6 +170,7 @@ void Foam::umpireMemoryPool::copyOut
     // if nElementsInBytes = 0 do nothing
     if (nElementsInBytes == 0) return;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     // check if pointer was allocated with pool
     auto record = rm_.findAllocationRecord(poolPtr);
 
@@ -176,8 +182,9 @@ void Foam::umpireMemoryPool::copyOut
     {
         FatalErrorInFunction
             << "Trying to assign more bytes than available in block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
+#endif
 
     inspector_.registerAllocation(ptr, nElementsInBytes, st_);
     rm_.copy(ptr, poolPtr, nElementsInBytes);
@@ -198,6 +205,7 @@ void Foam::umpireMemoryPool::memSet
     // if nElementsInBytes = 0 do nothing
     if (nElementsInBytes == 0) return;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     // check if pointer was allocated with pool
     auto record = rm_.findAllocationRecord(poolPtr);
     void* allocatedPoolPtr = record->ptr;
@@ -208,11 +216,18 @@ void Foam::umpireMemoryPool::memSet
     {
         FatalErrorInFunction
             << "Trying to assign more bytes than available in block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
+#endif
 
     // use memory executor
-    foamMemoryExecutor::memSet(poolPtr,nElementsInBytes,value,sizeOfValue);
+    foamMemoryExecutor::memSet
+    (
+        poolPtr,
+        nElementsInBytes,
+        value,
+        sizeOfValue
+    );
 };
 
 void Foam::umpireMemoryPool::memSetScalarOne
@@ -227,6 +242,7 @@ void Foam::umpireMemoryPool::memSetScalarOne
     // if nElementsInBytes = 0 do nothing
     if (nElementsInBytes == 0) return;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     // check if pointer was allocated with pool
     auto record = rm_.findAllocationRecord(poolPtr);
     void* allocatedPoolPtr = record->ptr;
@@ -237,11 +253,12 @@ void Foam::umpireMemoryPool::memSetScalarOne
     {
         FatalErrorInFunction
             << "Trying to assign more bytes than available in block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
+#endif
 
     // use memory executor
-    foamMemoryExecutor::memSetScalarOne(poolPtr,nElementsInBytes);
+    foamMemoryExecutor::memSetScalarOne(poolPtr, nElementsInBytes);
 };
 
 void Foam::umpireMemoryPool::memSet
@@ -257,6 +274,7 @@ void Foam::umpireMemoryPool::memSet
     //if nElementsInBytes = 0 do nothing
     if (nElementsInBytes == 0) return;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     // check if pointer was allocated with pool
     auto record = rm_.findAllocationRecord(poolPtr);
     void* allocatedPoolPtr = record->ptr;
@@ -267,11 +285,12 @@ void Foam::umpireMemoryPool::memSet
     {
         FatalErrorInFunction
             << "Trying to assign more bytes than available in block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
+#endif
 
     // use foam memory executor
-    foamMemoryExecutor::memSet(poolPtr,nElementsInBytes,value);
+    foamMemoryExecutor::memSet(poolPtr, nElementsInBytes, value);
 };
 
 void Foam::umpireMemoryPool::memCopy
@@ -287,6 +306,7 @@ void Foam::umpireMemoryPool::memCopy
     // if nElementsInBytes = 0 do nothing
     if (nElementsInBytes == 0) return;
 
+#ifdef MEMORY_POOL_POINTER_CHECK
     // check if pointer was allocated with pool
     auto recordTgt = rm_.findAllocationRecord(tgtPtr);
     void* allocatedTgtPtr = recordTgt->ptr;
@@ -296,7 +316,7 @@ void Foam::umpireMemoryPool::memCopy
     {
         FatalErrorInFunction
             << "Trying to assign more bytes than available in target block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
 
     // check if pointer was allocated with pool
@@ -308,10 +328,11 @@ void Foam::umpireMemoryPool::memCopy
     {
         FatalErrorInFunction
             << "Trying to read more bytes than available in src block"
-            <<abort(FatalError);
+            << abort(FatalError);
     }
+#endif
 
-    rm_.copy(tgtPtr,srcPtr,nElementsInBytes);
+    rm_.copy(tgtPtr, srcPtr, nElementsInBytes);
 }
 
 // ************************************************************************* //
