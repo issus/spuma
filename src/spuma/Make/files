@@ -1,0 +1,49 @@
+lduMatrix = OpenFOAM/matrices/lduMatrix
+lduAddressing = $(lduMatrix)/lduAddressing
+lduInterfaceFields = $(lduAddressing)/lduInterfaceFields
+GAMG = $(lduMatrix)/solvers/GAMG
+GAMGInterfaces = $(GAMG)/interfaces
+GAMGInterfaceFields = $(GAMG)/interfaceFields
+
+polyMesh = OpenFOAM/meshes/polyMesh
+polyPatches = $(polyMesh)/polyPatches
+constraintPolyPatches = $(polyPatches)/constraint
+
+pointMesh = OpenFOAM/meshes/pointMesh
+pointPatches = $(pointMesh)/pointPatches
+constraintPointPatches = $(pointPatches)/constraint
+
+pointPatchFields = OpenFOAM/fields/pointPatchFields
+constraintPointPatchFields = $(pointPatchFields)/constraint
+
+faPatches = finiteArea/faMesh/faPatches
+faPatchFields = finiteArea/fields/faPatchFields
+constraintFaPatchFields = $(faPatchFields)/constraint
+
+faePatchFields = finiteArea/fields/faePatchFields
+constraintFaePatchFields = $(faePatchFields)/constraint
+
+fvPatches = finiteVolume/fvMesh/fvPatches
+constraintFvPatches = $(fvPatches)/constraint
+
+fvPatchFields = finiteVolume/fields/fvPatchFields
+constraintFvPatchFields = $(fvPatchFields)/constraint
+derivedFvPatchFields = $(fvPatchFields)/derived
+
+fvsPatchFields = finiteVolume/fields/fvsPatchFields
+constraintFvsPatchFields = $(fvsPatchFields)/constraint
+
+
+$(lduAddressing)/lduInterface/overlapAMILduInterface.C
+$(lduInterfaceFields)/overlapAMILduInterfaceField/overlapAMILduInterfaceField.C
+$(GAMGInterfaces)/overlapAMIGAMGInterface/overlapAMIGAMGInterface.C
+$(GAMGInterfaceFields)/overlapAMIGAMGInterfaceField/overlapAMIGAMGInterfaceField.C
+$(constraintPolyPatches)/overlapAMIPolyPatch/overlapAMIPolyPatch.C
+$(constraintPolyPatches)/overlapAMIPolyPatch/overlapAMIPolyPatchInterpolateScalar.C
+$(constraintPointPatches)/overlapAMIPointPatch/overlapAMIPointPatch.C
+$(constraintPointPatchFields)/overlapAMIPointPatchField/overlapAMIPointPatchFields.C
+$(constraintFvPatches)/overlapAMI/overlapAMIFvPatch.C
+$(constraintFvPatchFields)/overlapAMI/overlapAMIFvPatchFields.C
+$(constraintFvsPatchFields)/overlapAMI/overlapAMIFvsPatchFields.C
+
+LIB = $(FOAM_USER_LIBBIN)/libCustomSpuma
