@@ -445,6 +445,24 @@ public:
                 //- Return access to source patch weights
                 inline scalarListList& srcWeights();
 
+                //- Return const access to flat source patch addressing
+                inline const labelList& srcFlatAddress() const;
+
+                //- Return access to source flat patch addressing
+                inline labelList& srcFlatAddress();
+
+                //- Return const access to flat source patch addressing
+                inline const labelList& srcFlatIdxs() const;
+
+                //- Return access to source flat patch addressing
+                inline labelList& srcFlatIdxs();
+
+                //- Return const access to flat source patch weights
+                inline const scalarList& srcFlatWeights() const;
+
+                //- Return access to source flat patch weights
+                inline scalarList& srcFlatWeights();
+
                 //- Return const access to normalisation factor of source
                 //- patch weights (i.e. the sum before normalisation)
                 inline const scalarField& srcWeightsSum() const;
@@ -488,6 +506,24 @@ public:
 
                 //- Return access to target patch weights
                 inline scalarListList& tgtWeights();
+
+                //- Return const access to target patch addressing
+                inline const labelList& tgtFlatAddress() const;
+
+                //- Return access to target patch addressing
+                inline labelList& tgtFlatAddress();
+
+                //- Return const access to target patch addressing
+                inline const labelList& tgtFlatIdxs() const;
+
+                //- Return access to target patch addressing
+                inline labelList& tgtFlatIdxs();
+
+                //- Return const access to target patch weights
+                inline const scalarList& tgtFlatWeights() const;
+
+                //- Return access to target patch weights
+                inline scalarList& tgtFlatWeights();
 
                 //- Return const access to normalisation factor of target
                 //- patch weights (i.e. the sum before normalisation)

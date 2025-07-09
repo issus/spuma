@@ -151,6 +151,37 @@ inline Foam::scalarListList& Foam::AMIInterpolation::srcWeights()
     return srcWeights_;
 }
 
+inline const Foam::labelList& Foam::AMIInterpolation::srcFlatAddress() const
+{
+    return flatSrcAddress_;
+}
+
+
+inline Foam::labelList& Foam::AMIInterpolation::srcFlatAddress()
+{
+    return flatSrcAddress_;
+}
+
+inline const Foam::labelList& Foam::AMIInterpolation::srcFlatIdxs() const
+{
+    return flatSrcIdx_;
+}
+
+inline Foam::labelList& Foam::AMIInterpolation::srcFlatIdxs()
+{
+    return flatSrcIdx_;
+}
+
+inline const Foam::scalarList& Foam::AMIInterpolation::srcFlatWeights() const
+{
+    return flatSrcWeights_;
+}
+
+
+inline Foam::scalarList& Foam::AMIInterpolation::srcFlatWeights()
+{
+    return flatSrcWeights_;
+}
 
 inline const Foam::scalarField& Foam::AMIInterpolation::srcWeightsSum() const
 {
@@ -224,6 +255,37 @@ inline Foam::scalarListList& Foam::AMIInterpolation::tgtWeights()
     return tgtWeights_;
 }
 
+inline const Foam::labelList& Foam::AMIInterpolation::tgtFlatAddress() const
+{
+    return flatTgtAddress_;
+}
+
+
+inline Foam::labelList& Foam::AMIInterpolation::tgtFlatAddress()
+{
+    return flatTgtAddress_;
+}
+
+inline const Foam::labelList& Foam::AMIInterpolation::tgtFlatIdxs() const
+{
+    return flatTgtIdx_;
+}
+
+inline Foam::labelList& Foam::AMIInterpolation::tgtFlatIdxs()
+{
+    return flatTgtIdx_;
+}
+
+inline const Foam::scalarList& Foam::AMIInterpolation::tgtFlatWeights() const
+{
+    return flatTgtWeights_;
+}
+
+
+inline Foam::scalarList& Foam::AMIInterpolation::tgtFlatWeights()
+{
+    return flatTgtWeights_;
+}
 
 inline const Foam::scalarField& Foam::AMIInterpolation::tgtWeightsSum() const
 {
