@@ -1214,6 +1214,24 @@ void Foam::AMIInterpolation::normaliseWeights
         lowWeightCorrection_,
         comm_
     );
+
+    AMIInterpolation::calcFlatIndexing
+    (
+        srcAddress_,
+        srcWeights_,
+        flatSrcAddress_,
+        flatSrcWeights_,
+        flatSrcIdx_
+    );
+
+    AMIInterpolation::calcFlatIndexing
+    (
+        tgtAddress_,
+        tgtWeights_,
+        flatTgtAddress_,
+        flatTgtWeights_,
+        flatTgtIdx_
+    );
 }
 
 
