@@ -211,7 +211,7 @@ $(expr)/Function1/makeFunction1Expression.C
 
 
 ops = primitives/ops
-$(ops)/flipOp.C
+/*$(ops)/flipOp.C*/
 
 primitives/predicates/scalar/scalarPredicates.C
 

@@ -41,6 +41,7 @@ SourceFiles
 #define Foam_flipOp_H
 
 #include "fieldTypes.H"
+#include "deviceM.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -55,7 +56,7 @@ namespace Foam
 struct noOp
 {
     template<class T>
-    const T& operator()(const T& val) const noexcept
+    FOAM_DEVICE const T& operator()(const T& val) const noexcept
     {
         return val;
     }
@@ -68,8 +69,8 @@ struct noOp
 
 struct flipOp
 {
-    template<class T>
-    T operator()(const T& val) const
+    template<typename T>
+    FOAM_DEVICE T operator()(const T& val) const
     {
         return val;
     }
@@ -79,7 +80,7 @@ struct flipOp
 //- Invert boolean value
 struct flipBoolOp
 {
-    bool operator()(const bool val) const noexcept
+    FOAM_DEVICE bool operator()(const bool val) const noexcept
     {
         return !val;
     }
@@ -89,7 +90,7 @@ struct flipBoolOp
 //- Negate integer values
 struct flipLabelOp
 {
-    label operator()(const label val) const
+    FOAM_DEVICE label operator()(const label val) const
     {
         return -val;
     }
@@ -97,18 +98,21 @@ struct flipLabelOp
 
 
 // Template specialisation for primitives that support negation
-template<> scalar flipOp::operator()(const scalar&) const;
-template<> vector flipOp::operator()(const vector&) const;
-template<> sphericalTensor flipOp::operator()(const sphericalTensor&) const;
-template<> symmTensor flipOp::operator()(const symmTensor&) const;
-template<> tensor flipOp::operator()(const tensor&) const;
-template<> triad flipOp::operator()(const triad&) const;
+// template<> FOAM_DEVICE scalar flipOp::operator()(const scalar&) const;
+// template<> FOAM_DEVICE vector flipOp::operator()(const vector&) const;
+// template<> FOAM_DEVICE sphericalTensor flipOp::operator()(const sphericalTensor&) const;
+// template<> FOAM_DEVICE symmTensor flipOp::operator()(const symmTensor&) const;
+// template<> FOAM_DEVICE tensor flipOp::operator()(const tensor&) const;
+// template<> FOAM_DEVICE triad flipOp::operator()(const triad&) const;
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
 
+#ifdef NoRepository
+    #include "flipOp.C"
+#endif
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif

@@ -33,7 +33,7 @@ License
 #undef  defineNegateOp
 #define defineNegateOp(Type)                                                  \
                                                                               \
-    template<> Type Foam::flipOp::operator()(const Type& val) const           \
+    template<> FOAM_DEVICE Type Foam::flipOp::operator()(const Type& val) const \
     {                                                                         \
         return -val;                                                          \
     }
