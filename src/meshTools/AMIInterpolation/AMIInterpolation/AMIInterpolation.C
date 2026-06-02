@@ -35,6 +35,10 @@ License
 #include "OFstream.H"
 #include "registerSwitch.H"
 #include "ListOps.H"
+#include "vector.H"
+#include "sphericalTensor.H"
+#include "symmTensor.H"
+#include "tensor.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -1605,6 +1609,116 @@ bool Foam::AMIInterpolation::writeData(Ostream& os) const
 
     return os.good();
 }
+
+
+// * * * * * * * * * * GPU weighted-sum (CUDA-offloaded) * * * * * * * * * * * //
+//
+// AMI's per-face weighted gather-sum is structurally a sparse mat-vec. This
+// helper offloads the standard multiply+plusEq accumulation
+// (result[face] += weight*fld[slot]) to CUDA. It is defined and explicitly
+// instantiated here, in a single TU, so the device kernel does NOT cascade
+// device compilation into every consumer of AMIInterpolation.H (weightedSum()
+// dispatches here via `if constexpr` only for the standard combine op).
+
+template<class Type>
+void Foam::AMIInterpolation::weightedSumGpu
+(
+    const scalar lowWeightCorrection,
+    const labelListList& allSlots,
+    const scalarListList& allWeights,
+    const scalarField& weightsSum,
+    const UList<Type>& fld,
+    List<Type>& result,
+    const UList<Type>& defaultValues
+)
+{
+    // Flatten ragged per-face addressing/weights into pool-backed CSR arrays,
+    // then run one GPU thread per result face.
+    const label nFaces = result.size();
+
+    labelList flatIdx(nFaces + 1, poolSwitch(true));
+    flatIdx[0] = 0;
+    for (label facei = 0; facei < nFaces; ++facei)
+    {
+        flatIdx[facei + 1] = flatIdx[facei] + allSlots[facei].size();
+    }
+    const label flatTotal = (nFaces > 0 ? flatIdx[nFaces] : 0);
+
+    labelList  flatSlots(flatTotal, poolSwitch(true));
+    scalarList flatWeights(flatTotal, poolSwitch(true));
+    for (label facei = 0; facei < nFaces; ++facei)
+    {
+        const labelList& slots = allSlots[facei];
+        const scalarList& wgts = allWeights[facei];
+        const label off = flatIdx[facei];
+        forAll(slots, i)
+        {
+            flatSlots[off + i] = slots[i];
+            flatWeights[off + i] = wgts[i];
+        }
+    }
+
+    foamExecutor exec;
+    auto result_p = result.begin();
+    const auto fld_p = fld.cbegin();
+    const auto defaultValues_p = defaultValues.cbegin();
+    const auto weightsSum_p = weightsSum.cbegin();
+    const auto flatSlots_p = flatSlots.cbegin();
+    const auto flatWeights_p = flatWeights.cbegin();
+    const auto flatIdx_p = flatIdx.cbegin();
+    const scalar lwc = lowWeightCorrection;
+
+    if (lwc > 0)
+    {
+        auto Lambda = [=](label facei)
+        {
+            if (weightsSum_p[facei] < lwc)
+            {
+                result_p[facei] = defaultValues_p[facei];
+            }
+            else
+            {
+                for (label i = flatIdx_p[facei]; i < flatIdx_p[facei + 1]; ++i)
+                {
+                    result_p[facei] += flatWeights_p[i]*fld_p[flatSlots_p[i]];
+                }
+            }
+        };
+        exec.parallelFor(Lambda, nFaces);
+    }
+    else
+    {
+        auto Lambda = [=](label facei)
+        {
+            for (label i = flatIdx_p[facei]; i < flatIdx_p[facei + 1]; ++i)
+            {
+                result_p[facei] += flatWeights_p[i]*fld_p[flatSlots_p[i]];
+            }
+        };
+        exec.parallelFor(Lambda, nFaces);
+    }
+}
+
+
+// Explicit instantiations over the supported field types.
+#define instantiateAMIWeightedSumGpu(Type)                                     \
+    template void Foam::AMIInterpolation::weightedSumGpu<Type>                  \
+    (                                                                          \
+        const Foam::scalar,                                                    \
+        const Foam::labelListList&,                                            \
+        const Foam::scalarListList&,                                           \
+        const Foam::scalarField&,                                              \
+        const Foam::UList<Type>&,                                              \
+        Foam::List<Type>&,                                                     \
+        const Foam::UList<Type>&                                               \
+    );
+
+instantiateAMIWeightedSumGpu(Foam::scalar)
+instantiateAMIWeightedSumGpu(Foam::vector)
+instantiateAMIWeightedSumGpu(Foam::sphericalTensor)
+instantiateAMIWeightedSumGpu(Foam::symmTensor)
+instantiateAMIWeightedSumGpu(Foam::tensor)
+#undef instantiateAMIWeightedSumGpu
 
 
 // ************************************************************************* //

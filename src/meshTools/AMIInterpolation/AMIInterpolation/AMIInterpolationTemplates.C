@@ -28,6 +28,8 @@ License
 
 #include "profiling.H"
 #include "mapDistribute.H"
+#include <type_traits>
+#include "ops.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -44,6 +46,23 @@ void Foam::AMIInterpolation::weightedSum
     const UList<Type>& defaultValues
 )
 {
+    // GPU fast path: the standard AMI accumulation (multiply + plusEq) is
+    // offloaded to CUDA via weightedSumGpu (explicitly instantiated in
+    // AMIInterpolation.C). Other combine ops (e.g. FaceCellWave mesh-wave
+    // propagation with combine<>) fall through to the host loop below.
+    if constexpr
+    (
+        std::is_same_v<CombineOp, multiplyWeightedOp<Type, plusEqOp<Type>>>
+    )
+    {
+        weightedSumGpu
+        (
+            lowWeightCorrection, allSlots, allWeights, weightsSum,
+            fld, result, defaultValues
+        );
+        return;
+    }
+
     if (lowWeightCorrection > 0)
     {
         forAll(result, facei)

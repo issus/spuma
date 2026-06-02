@@ -559,6 +559,25 @@ public:
                     const UList<Type>& defaultValues
                 );
 
+                //- GPU (CUDA) weighted sum for the standard multiply+plusEq
+                //- accumulation (result += weight*fld[slot]). Defined and
+                //- explicitly instantiated in AMIInterpolation.C so the device
+                //- kernel compiles in one TU (no device-compile cascade into
+                //- consumers). weightedSum() dispatches here via if constexpr
+                //- for the standard combine op; mesh-wave combine<> ops stay on
+                //- the host path.
+                template<class Type>
+                static void weightedSumGpu
+                (
+                    const scalar lowWeightCorrection,
+                    const labelListList& allSlots,
+                    const scalarListList& allWeights,
+                    const scalarField& weightsSum,
+                    const UList<Type>& fld,
+                    List<Type>& result,
+                    const UList<Type>& defaultValues
+                );
+
                 //- Weighted sum of contributions (includes caching+interp)
                 //- (for primitive types only)
                 template<class Type>
