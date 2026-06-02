@@ -21,7 +21,12 @@ c++LESSWARN =
 include $(GENERAL_RULES)/cuda
 
 ifneq (,$(findstring true,$(have_cuda)))
-    CC += -gpu=cc$(NVARCH) -cuda -Dhave_cuda
+    # nordc (no relocatable device code): SPUMA's foamExecutor kernels are per-TU
+    # header-template lambdas with no cross-TU __device__ calls, so RDC is unneeded.
+    # RDC additionally breaks linking when device code lives in a widely-#included
+    # template impl (e.g. fvPatchField.C): nvc++ 26.3 emits duplicate
+    # __cudaRegisterLinkedBinary stubs keyed on the source file -> link redefinition.
+    CC += -gpu=cc$(NVARCH),nordc -cuda -Dhave_cuda
 endif
 
 # Tuning
