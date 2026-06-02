@@ -32,6 +32,7 @@ License
 #include "pyramid.H"
 #include "tetrahedron.H"
 #include "PrecisionAdaptor.H"
+#include "executors.H"   // foamExecutor (GPU/CPU parallelFor)
 
 // * * * * * * * * * * * * * * * Local Functions * * * * * * * * * * * * * * //
 
@@ -502,7 +503,7 @@ Foam::scalar Foam::primitiveMeshTools::boundaryFaceSkewness
 }
 
 
-Foam::scalar Foam::primitiveMeshTools::faceOrthogonality
+FOAM_DEVICE Foam::scalar Foam::primitiveMeshTools::faceOrthogonality
 (
     const point& ownCc,
     const point& neiCc,
@@ -526,20 +527,30 @@ Foam::tmp<Foam::scalarField> Foam::primitiveMeshTools::faceOrthogonality
 {
     const labelList& own = mesh.faceOwner();
     const labelList& nei = mesh.faceNeighbour();
+    const label nInternal = mesh.nInternalFaces();
 
-    auto tortho = tmp<scalarField>::New(mesh.nInternalFaces());
+    auto tortho = tmp<scalarField>::New(nInternal);
     auto& ortho = tortho.ref();
 
-    // Internal faces
-    forAll(nei, facei)
+    // Internal faces: one GPU thread per face (mesh-quality kernel used by
+    // snappyHexMesh's quality-driven refinement and by checkMesh).
+    foamExecutor exec;
+    auto ortho_p = ortho.begin();
+    const auto own_p = own.cbegin();
+    const auto nei_p = nei.cbegin();
+    const auto cc_p = cc.cbegin();
+    const auto areas_p = areas.cbegin();
+
+    auto Lambda = [=](label facei)
     {
-        ortho[facei] = faceOrthogonality
+        ortho_p[facei] = faceOrthogonality
         (
-            cc[own[facei]],
-            cc[nei[facei]],
-            areas[facei]
+            cc_p[own_p[facei]],
+            cc_p[nei_p[facei]],
+            areas_p[facei]
         );
-    }
+    };
+    exec.parallelFor(Lambda, nInternal);
 
     return tortho;
 }

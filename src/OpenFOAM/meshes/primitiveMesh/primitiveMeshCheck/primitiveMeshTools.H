@@ -41,6 +41,7 @@ SourceFiles
 #include "bitSet.H"
 #include "primitiveFields.H"
 #include "pointField.H"
+#include "deviceM.H"   // FOAM_DEVICE (host/device) for GPU-callable helpers
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -243,8 +244,8 @@ public:
             const point& ownCc
         );
 
-        //- Orthogonality of single face
-        static scalar faceOrthogonality
+        //- Orthogonality of single face (GPU-callable)
+        FOAM_DEVICE static scalar faceOrthogonality
         (
             const point& ownCc,
             const point& neiCc,

@@ -30,6 +30,7 @@ License
 #include "syncTools.H"
 #include "pyramid.H"
 #include "primitiveMeshTools.H"
+#include "executors.H"   // foamExecutor (GPU/CPU parallelFor)
 
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
 
@@ -47,15 +48,18 @@ Foam::tmp<Foam::scalarField> Foam::polyMeshTools::faceOrthogonality
     auto tortho = tmp<scalarField>::New(mesh.nFaces(), scalar(1));
     auto& ortho = tortho.ref();
 
-    // Internal faces
-    forAll(nei, facei)
+    // Internal faces: delegate to the GPU faceOrthogonality kernel that lives in
+    // primitiveMeshTools (compiled there). Keeping the CUDA kernel out of this
+    // TU avoids an nvc++ 26.3 device-codegen ICE triggered by this file's
+    // heavier include context (syncTools/pyramid). This is the mesh-quality
+    // orthogonality used by checkMesh -writeAllFields and snappyHexMesh's
+    // quality-driven refinement. Coupled faces below stay on the host.
     {
-        ortho[facei] = primitiveMeshTools::faceOrthogonality
+        const scalarField intOrtho
         (
-            cc[own[facei]],
-            cc[nei[facei]],
-            areas[facei]
+            primitiveMeshTools::faceOrthogonality(mesh, areas, cc)
         );
+        SubList<scalar>(ortho, intOrtho.size()) = intOrtho;
     }
 
 
