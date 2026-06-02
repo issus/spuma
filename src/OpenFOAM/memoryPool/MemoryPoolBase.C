@@ -105,9 +105,12 @@ Foam::Spuma::MemoryPool* Foam::Spuma::MemoryPool::getInstance()
 {
     if (!instance)
     {
-       FatalErrorInFunction
-        << "no instance of memory pool initialized" << nl
-        << abort(FatalError);
+        // Lazily initialise the default (dummy) pool instead of aborting, so
+        // utilities that don't explicitly create one (e.g. topoSet, mesh
+        // tools) work on a GPU build. Solvers/applications that select a pool
+        // via -pool create their instance earlier, so this path is not taken
+        // for them.
+        return New("dummyMemoryPool", 0);
     }
 
     return instance;
