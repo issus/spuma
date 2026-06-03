@@ -47,6 +47,34 @@ void* Foam::cudaMemoryExecutor::_backendAlloc(uint64_t size)
     {
         FatalErrorInFunction << "ERROR: cudaMallocManaged returned " << err << abort(FatalError);
     }
+
+    // GPU-residency hints. Where managed memory can migrate to the device
+    // (concurrentManagedAccess==1, e.g. native-Linux V100/A100), advise the
+    // driver to keep these pages resident on the GPU and prefetch them, so
+    // kernels read device memory instead of fault-migrating (or, on platforms
+    // without migration, accessing host-pinned memory over PCIe) on every
+    // access. This is a no-op where unsupported (e.g. WSL2,
+    // concurrentManagedAccess==0) so it never errors there.
+    static int s_dev = -1;
+    static int s_canMigrate = -1;
+    if (s_canMigrate < 0)
+    {
+        cudaGetDevice(&s_dev);
+        cudaDeviceGetAttribute
+        (
+            &s_canMigrate, cudaDevAttrConcurrentManagedAccess, s_dev
+        );
+    }
+    if (s_canMigrate > 0 && ptr != nullptr && size > 0)
+    {
+        cudaMemLocation loc;
+        loc.type = cudaMemLocationTypeDevice;
+        loc.id   = s_dev;
+        cudaMemAdvise(ptr, size, cudaMemAdviseSetPreferredLocation, loc);
+        cudaMemAdvise(ptr, size, cudaMemAdviseSetAccessedBy, loc);
+        cudaMemPrefetchAsync(ptr, size, loc, 0, 0);
+    }
+
     return ptr;
 }
 
